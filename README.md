@@ -1,46 +1,83 @@
-# Sign Language Translation App with IoT and AI Integration
+# Hand Sign Translation App
+## Overview
+This application translates hand signs into text in real-time using a webcam. It's built with React for the frontend and Node.js for the backend, utilizing TensorFlow.js for hand sign detection and interpretation.
 
-A mobile application that translates sign language into spoken English in real-time using smartphone cameras. Designed for deaf and hard-of-hearing users, the app recognizes hand gestures and converts them instantly into text or speech.
-
-## Abstract
-
-This project develops a mobile app that translates sign language into spoken English in real-time using smartphone cameras. Designed for deaf and hard-of-hearing users, the app recognizes hand gestures and converts them instantly into text or speech, enabling smoother daily communication without needing human interpreters. Unlike existing solutions that require special equipment, our portable system works anywhere using just a phone. Initial tests show accurate translation for common signs, with potential applications in healthcare, education, and public services. By providing an accessible, affordable communication tool, this technology helps bridge the gap between deaf and hearing communities, promoting greater social inclusion. Future updates may add two-way translation and support for regional sign variations.
-
-## Expected Outcomes
-
-1. Real-Time Sign Language Recognition
-2. Text Conversion
-3. IoT Integration
-4. User-Friendly Interface
-5. Offline Functionality
-6. Educational Tools
-7. Accessibility Features
-8. Data Privacy and Security
-9. Scalability and Future Enhancements
-
+## Features
+- Real-time hand sign detection using webcam
+- Translation of hand gestures to text
+- Simple and intuitive user interface
+- Basic sign recognition for "Hello", "Thank you", "Yes", and "No"
+## Project Structure
+```
+Hand-sign-App/
+├── App/
+│   ├── backend/           # Node.js backend
+│   │   ├── .env           # Environment variables
+│   │   ├── package.json   # Backend dependencies
+│   │   └── server.js      # Express server
+│   └── frontend/          # React frontend
+│       ├── public/        # Static files
+│       ├── src/           # Source code
+│       │   ├── components/# React components
+│       │   │   ├── HandSignDetector.js    # Webcam and sign 
+detection
+│       │   │   └── TranslationDisplay.js  # Display 
+translated text
+│       │   ├── App.js     # Main application component
+│       │   └── App.css    # Styling
+│       └── package.json   # Frontend dependencies
+```
 ## Technology Stack
-
-- **Frontend**: Flutter (cross-platform mobile development)
-- **Backend**: Firebase (Authentication, Firestore, Cloud Functions)
-- **AI Model**: TensorFlow/TensorFlow Lite for gesture recognition
-- **IoT Integration**: MQTT protocol for device communication
-- **Push Notifications**: Firebase Cloud Messaging
-- **Speech Synthesis**: Text-to-Speech APIs
-
-## Getting Started
-
+- Frontend : React.js
+- Backend : Node.js, Express
+- Machine Learning : TensorFlow.js, Handpose model
+- Development Tools : npm, nodemon
+## Installation and Setup
 ### Prerequisites
+- Node.js (v12 or higher)
+- npm (v6 or higher)
+### Backend Setup
+```
+cd d:\Hand-sign-App\App\backend
+npm install
+```
+### Frontend Setup
+```
+cd d:\Hand-sign-App\App\frontend
+npm install
+```
+## Running the Application
+### Start the Backend Server
+```
+cd d:\Hand-sign-App\App\backend
+npm run dev
+```
+The backend server will run on http://localhost:5000
 
-- Flutter SDK
-- Firebase account
-- TensorFlow/TensorFlow Lite
-- Android Studio / VS Code
-- Git
+### Start the Frontend Development Server
+```
+cd d:\Hand-sign-App\App\frontend
+npm start
+```
+The frontend application will be available at http://localhost:3000
 
-### Installation
+## How It Works
+1. The application accesses your device's camera through the browser
+2. TensorFlow.js and the Handpose model detect hand landmarks in the video stream
+3. A simple algorithm interprets these landmarks to recognize basic signs
+4. Recognized signs are displayed as text on the screen
+## Current Limitations
+- Basic sign recognition only (limited to a few predefined signs)
+- Requires good lighting conditions for accurate detection
+- May have performance issues on lower-end devices
+## Future Enhancements
+- Improved sign recognition with a more sophisticated model
+- Support for more signs and gestures
+- User authentication and history tracking
+- Offline functionality
+- Text-to-speech capabilities
+## Contributing
+Contributions to improve the application are welcome. Please feel free to submit pull requests or open issues to suggest improvements.
 
-1. Clone the repository
-2. Navigate to the project directory
-3. Run `flutter pub get` to install dependencies
-4. Configure Firebase credentials
-5. Run the app using `flutter run`
+## License
+ISC
