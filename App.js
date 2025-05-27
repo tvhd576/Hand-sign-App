@@ -1,310 +1,226 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Button, ImageBackground, ScrollView, SafeAreaView, TouchableOpacity, Modal } from 'react-native';
-import bg from './assets/backgroundminecraft.jpg';
-import CameraModule from './components/CameraModule';
-import HandSignRecognitionService from './services/HandSignRecognitionService';
-import IoTService from './services/IoTService';
-import OfflineStorageService from './services/OfflineStorageService';
-import SettingsScreen from './components/SettingsScreen';
-import EducationalTools from './components/EducationalTools';
-import TranslationHistory from './components/TranslationHistory';
-import * as Speech from 'expo-speech';
-import UserProfile from './components/UserProfile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  Image,
+  ImageBackground,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
+
+import bg from './assets/4143f2c9df7314e9144092dce0b27e35.jpg';
 
 export default function App() {
-  // State variables
+  const [screen, setScreen] = useState('login'); // 'login', 'signup', 'main'
+  const [userInfo, setUserInfo] = useState(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [recognizedLetter, setRecognizedLetter] = useState('');
   const [translation, setTranslation] = useState('');
-  const [isModelLoaded, setIsModelLoaded] = useState(false);
-  const [isIoTConnected, setIsIoTConnected] = useState(false);
-  const [offlineMode, setOfflineMode] = useState(false);
-  const [showEducationalTools, setShowEducationalTools] = useState(false);
-  const [highContrastMode, setHighContrastMode] = useState(false);
-  const [textToSpeechEnabled, setTextToSpeechEnabled] = useState(true);
-  
-  // Modal states
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
-  const [educationalToolsModalVisible, setEducationalToolsModalVisible] = useState(false);
-  const [historyModalVisible, setHistoryModalVisible] = useState(false);
-  
-  // Add new state variables
-  const [userProfileModalVisible, setUserProfileModalVisible] = useState(false);
-  
-  // Load user preferences on startup
-  useEffect(() => {
-    const loadPreferences = async () => {
-      const prefs = await OfflineStorageService.getPreferences();
-      setHighContrastMode(prefs.highContrastMode);
-      setTextToSpeechEnabled(prefs.textToSpeechEnabled);
-      setOfflineMode(prefs.offlineMode);
-      setShowEducationalTools(prefs.showEducationalTools);
-    };
-    
-    loadPreferences();
-    
-    // Initialize the hand sign recognition service (will be implemented later)
-    const initializeAI = async () => {
-      const success = await HandSignRecognitionService.initialize();
-      setIsModelLoaded(success);
-    };
+  const [users, setUsers] = useState({});
 
-    initializeAI();
-  }, []);
+ const handleLogin = async () => {
+  if (!email || !password) {
+    alert('Please enter both email and password.');
+    return;
+  }
 
-  // Save preferences when they change
-  useEffect(() => {
-    const savePrefs = async () => {
-      await OfflineStorageService.savePreferences({
-        highContrastMode,
-        textToSpeechEnabled,
-        offlineMode,
-        showEducationalTools,
-      });
+  const user = users[email.toLowerCase()];
+  if (user && user.password === password) {
+    const userData = {
+      name: email.split('@')[0],
+      picture: 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
     };
-    
-    savePrefs();
-  }, [highContrastMode, textToSpeechEnabled, offlineMode, showEducationalTools]);
+    setUserInfo(userData);
+    await AsyncStorage.setItem('currentUser', JSON.stringify(userData));
+    setScreen('main');
+  } else {
+    alert('Invalid email or password. Please sign up if you don’t have an account.');
+  }
+};
 
-  const handleSignDetected = (sign) => {
-    setTranslation(sign);
-    setRecognizedLetter(sign);
-    
-    // Save to history
-    OfflineStorageService.saveTranslation(sign);
-    
-    // Speak the detected sign if text-to-speech is enabled
-    if (textToSpeechEnabled) {
-      Speech.speak(sign, { language: 'en' });
-    }
-    
-    // Send to IoT devices if connected
-    if (isIoTConnected) {
-      IoTService.sendTranslationToDevices(sign);
-    }
+
+const handleSignUp = async () => {
+  if (!email || !password) {
+    alert('Please enter both email and password.');
+    return;
+  }
+
+  const lowerEmail = email.toLowerCase();
+  const existingUser = users[lowerEmail];
+
+  if (existingUser) {
+    alert('User already exists. Please log in.');
+    return;
+  }
+
+  const newUsers = {
+    ...users,
+    [lowerEmail]: { password },
   };
+  setUsers(newUsers);
 
-  const toggleIoTConnection = () => {
-    if (isIoTConnected) {
-      try {
-        IoTService.disconnect();
-        setIsIoTConnected(false);
-      } catch (error) {
-        console.error('Error disconnecting IoT:', error);
-      }
-    } else {
-      try {
-        IoTService.startScan();
-        setIsIoTConnected(true);
-      } catch (error) {
-        console.error('Error connecting IoT:', error);
-      }
+  await AsyncStorage.setItem('users', JSON.stringify(newUsers));
+  alert('Account created! You can now log in.');
+  setEmail('');
+  setPassword('');
+  setScreen('login');
+};
+
+
+
+  const handleLogout = async () => {
+  setUserInfo(null);
+  setEmail('');
+  setPassword('');
+  setScreen('login');
+  await AsyncStorage.removeItem('currentUser');
+};
+
+useEffect(() => {
+  const loadData = async () => {
+    const savedUsers = await AsyncStorage.getItem('users');
+    const savedUser = await AsyncStorage.getItem('currentUser');
+
+    if (savedUsers) setUsers(JSON.parse(savedUsers));
+    if (savedUser) {
+      setUserInfo(JSON.parse(savedUser));
+      setScreen('main');
     }
   };
+  loadData();
+}, []);
 
-  const toggleOfflineMode = () => {
-    setOfflineMode(!offlineMode);
-  };
 
-  const toggleEducationalTools = () => {
-    setShowEducationalTools(!showEducationalTools);
-  };
+  const renderAuthForm = (isSignup = false) => (
+  <ImageBackground source={bg} style={styles.background} resizeMode="cover">
+    <View style={styles.container}>
+      <View style={styles.loginBox}>
+         <Text style={styles.title2}>{isSignup ? 'Hand Sign App' : 'Hand Sign App'}</Text>
+         <Image
+            source={require('./assets/signs.png')}
+            style={styles.logo}
+          />
+        <Text style={styles.title}>{isSignup ? 'Sign Up' : 'Login'}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#ccc"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#ccc"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={isSignup ? handleSignUp : handleLogin}>
+         <Text style={styles.buttonText}>{isSignup ? 'Sign Up' : 'Login'}</Text>
+       </TouchableOpacity>
 
-  const toggleHighContrastMode = () => {
-    setHighContrastMode(!highContrastMode);
-  };
+        <TouchableOpacity onPress={() => setScreen(isSignup ? 'login' : 'signup')}>
+          <Text style={styles.backText}>
+            {isSignup ? '← Already have an account? Login' : '← Create an account'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </ImageBackground>
+  );
 
-  const toggleTextToSpeech = () => {
-    setTextToSpeechEnabled(!textToSpeechEnabled);
-  };
-
-  // Get theme based on high contrast mode
-  const getTheme = () => {
-    return highContrastMode ? highContrastTheme : defaultTheme;
-  };
-
-  const theme = getTheme();
+  if (screen === 'login') return renderAuthForm(false);
+  if (screen === 'signup') return renderAuthForm(true);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <ImageBackground
-        source={bg}
-        style={styles.background}
-      >
-        <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-          <Text style={[styles.title, { color: theme.primaryText }]}>Hand Sign Translator</Text>
-          <Text style={[styles.subtitle, { color: theme.secondaryText }]}>Translate hand gestures into text in real-time</Text>
+      <ImageBackground source={bg} style={styles.background} resizeMode="cover">
+        <ScrollView contentContainerStyle={styles.container}>
+          <Text style={styles.title}>Hand Sign Detector</Text>
+          <Text style={styles.subtitle}>Hello, {userInfo.name}</Text>
+          <Image source={{ uri: userInfo.picture }} style={styles.profilePic} />
 
-          {/* Camera component */}
-          <CameraModule 
-            isActive={isCameraActive} 
-            onHandSignDetected={handleSignDetected} 
-          />
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.subtitle}>
+            Translate hand gestures into letters in real-time.
+          </Text>
+
+          <View style={styles.cameraPlaceholder}>
+            <Text style={styles.cameraText}>
+              {isCameraActive
+                ? 'Camera is active. Showing hand signs...'
+                : 'Camera is off'}
+            </Text>
+          </View>
 
           <View style={styles.buttonGroup}>
             <Button
               title="Start Camera"
               onPress={() => setIsCameraActive(true)}
               disabled={isCameraActive}
-              color={isCameraActive ? theme.disabledButton : theme.primaryButton}
+              color={isCameraActive ? '#666' : '#2196F3'}
             />
             <Button
               title="Stop Camera"
               onPress={() => setIsCameraActive(false)}
               disabled={!isCameraActive}
-              color={!isCameraActive ? theme.disabledButton : theme.dangerButton}
+              color={!isCameraActive ? '#666' : '#F44336'}
             />
           </View>
 
-          <View style={[styles.outputBox, { backgroundColor: theme.cardBackground }]}>
-            <Text style={[styles.outputText, { color: theme.primaryText }]}>Recognized Sign: {recognizedLetter || '?'}</Text>
-            <Text style={[styles.translation, { color: theme.accentText }]}>{translation || ''}</Text>
+          <View style={styles.outputBox}>
+            <Text style={styles.outputText}>
+              Recognized Letter: {recognizedLetter || '?'}
+            </Text>
+            <Text style={styles.translation}>{translation || ''}</Text>
           </View>
 
-          {/* Feature buttons */}
-          <View style={styles.featureButtonsContainer}>
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => setSettingsModalVisible(true)}
-            >
-              <Text style={styles.featureButtonText}>Settings</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => setEducationalToolsModalVisible(true)}
-            >
-              <Text style={styles.featureButtonText}>Learn Signs</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => setHistoryModalVisible(true)}
-            >
-              <Text style={styles.featureButtonText}>History</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.featureButton}
-              onPress={() => setUserProfileModalVisible(true)}
-            >
-              <Text style={styles.featureButtonText}>Profile</Text>
-            </TouchableOpacity>
+          <View style={styles.instructionsBox}>
+            <Text style={styles.instructionsTitle}>How to Use:</Text>
+            <Text style={styles.instruction}>- Tap "Start Camera" to activate it.</Text>
+            <Text style={styles.instruction}>- Ensure your hand is visible.</Text>
+            <Text style={styles.instruction}>- The detected letter will be shown above.</Text>
           </View>
 
-          {/* Status indicators */}
-          <View style={styles.statusContainer}>
-            {isIoTConnected && (
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>IoT Connected</Text>
-              </View>
-            )}
-            {offlineMode && (
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Offline Mode</Text>
-              </View>
-            )}
-          </View>
-
-          <Text style={styles.footer}>Hand Sign Translator © 2025. Enhancing communication with technology.</Text>
+          <Text style={styles.footer}>
+            Hand Sign Detector © 2025. Enhance your communication with technology.
+          </Text>
         </ScrollView>
-
-        {/* Settings Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={settingsModalVisible}
-          onRequestClose={() => setSettingsModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <SettingsScreen 
-              isIoTConnected={isIoTConnected}
-              toggleIoTConnection={toggleIoTConnection}
-              offlineMode={offlineMode}
-              toggleOfflineMode={toggleOfflineMode}
-              showEducationalTools={showEducationalTools}
-              toggleEducationalTools={toggleEducationalTools}
-              highContrastMode={highContrastMode}
-              toggleHighContrastMode={toggleHighContrastMode}
-              textToSpeechEnabled={textToSpeechEnabled}
-              toggleTextToSpeech={toggleTextToSpeech}
-              onClose={() => setSettingsModalVisible(false)}
-            />
-          </View>
-        </Modal>
-
-        {/* Educational Tools Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={educationalToolsModalVisible}
-          onRequestClose={() => setEducationalToolsModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <EducationalTools onClose={() => setEducationalToolsModalVisible(false)} />
-          </View>
-        </Modal>
-
-        {/* History Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={historyModalVisible}
-          onRequestClose={() => setHistoryModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <TranslationHistory onClose={() => setHistoryModalVisible(false)} />
-          </View>
-        </Modal>
-      {/* User Profile Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={userProfileModalVisible}
-          onRequestClose={() => setUserProfileModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <UserProfile onClose={() => setUserProfileModalVisible(false)} />
-          </View>
-        </Modal>
       </ImageBackground>
     </SafeAreaView>
   );
 }
 
-// Theme definitions
-const defaultTheme = {
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  cardBackground: '#333',
-  primaryText: '#4FC3F7',
-  secondaryText: '#ccc',
-  accentText: '#4FC3F7',
-  primaryButton: '#2196F3',
-  dangerButton: '#F44336',
-  disabledButton: '#666',
-};
-
-const highContrastTheme = {
-  backgroundColor: 'rgba(0, 0, 0, 0.9)',
-  cardBackground: '#000',
-  primaryText: '#FFFFFF',
-  secondaryText: '#FFFFFF',
-  accentText: '#FFFF00',
-  primaryButton: '#FFFFFF',
-  dangerButton: '#FFFFFF',
-  disabledButton: '#666',
-};
-
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-    resizeMode: 'cover',
-  },
+  background: { flex: 1, resizeMode: 'cover' },
   container: {
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+  title2: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#4FC3F7',
+    textAlign: 'center',
+    marginVertical: 20,
+    marginBottom: 30,
   },
   title: {
     fontSize: 32,
@@ -319,6 +235,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  cameraPlaceholder: {
+    backgroundColor: '#444',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
+  cameraText: { color: '#fff' },
   buttonGroup: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -341,61 +266,6 @@ const styles = StyleSheet.create({
     color: '#4FC3F7',
     fontSize: 24,
     textAlign: 'center',
-  },
-  featureButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 20,
-  },
-  featureButton: {
-    backgroundColor: '#555',
-    padding: 10,
-    borderRadius: 5,
-    flex: 1,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  featureButtonActive: {
-    backgroundColor: '#2196F3',
-  },
-  featureButtonText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  educationalToolsContainer: {
-    backgroundColor: '#444',
-    padding: 20,
-    borderRadius: 10,
-    width: '100%',
-    marginBottom: 20,
-  },
-  educationalToolsTitle: {
-    color: '#81D4FA',
-    fontSize: 20,
-    marginBottom: 10,
-  },
-  educationalToolsText: {
-    color: '#eee',
-    fontSize: 16,
-    marginBottom: 15,
-  },
-  signExampleContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  signExample: {
-    backgroundColor: '#666',
-    padding: 15,
-    borderRadius: 5,
-    width: '48%',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  signExampleText: {
-    color: '#fff',
-    fontSize: 16,
   },
   instructionsBox: {
     backgroundColor: '#444',
@@ -420,29 +290,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 30,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  loginBox: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    width: '100%',
   },
-  statusContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+  loginButton: {
+    backgroundColor: '#4285F4',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  logoutButton: {
+    backgroundColor: '#e53935',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
     marginBottom: 20,
   },
-  statusBadge: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 15,
-    margin: 5,
-  },
-  statusText: {
+  buttonText: {
     color: '#fff',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  profilePic: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
+  },
+  input: {
+    width: '90%',
+    backgroundColor: '#333',
+    padding: 12,
+    borderRadius: 8,
+    color: '#fff',
+    marginBottom: 15,
+  },
+  backText: {
+    color: '#aaa',
+    textDecorationLine: 'underline',
+    marginTop: 10,
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    marginBottom: 30,
   },
 });
-
-
